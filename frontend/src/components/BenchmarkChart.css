@@ -1,0 +1,51 @@
+.benchmark-chart { padding: 24px; }
+.benchmark-chart .section-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.benchmark-stats {
+  display: flex;
+  gap: 20px;
+  margin: 16px 0;
+  flex-wrap: wrap;
+}
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 16px;
+  background: var(--accent-bg);
+  border-radius: var(--radius-xs);
+  min-width: 100px;
+}
+.stat-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+.stat-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.charts-row {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 20px;
+  margin-top: 16px;
+}
+.chart-container {
+  position: relative;
+  height: 280px;
+}
+.chart-container.radar {
+  height: 280px;
+}
+@media (max-width: 768px) {
+  .charts-row {
+    grid-template-columns: 1fr;
+  }
+}

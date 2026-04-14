@@ -1,0 +1,45 @@
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+.process-controls {
+  padding: 24px;
+}
+.controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.mode-selector {
+  display: flex;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.03);
+  padding: 4px;
+  border-radius: var(--radius-sm);
+}
+.mode-btn {
+  padding: 8px 18px;
+  border: none;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: transparent;
+  color: var(--text-secondary);
+  transition: all var(--transition);
+}
+.mode-btn:hover {
+  background: var(--bg-secondary);
+}
+.mode-btn.active {
+  color: white;
+  box-shadow: var(--shadow-sm);
+}
+.mode-btn.active.auto { background: var(--accent); }
+.mode-btn.active.local { background: var(--success); }
+.mode-btn.active.cloud { background: var(--cloud-blue); }
+.mode-btn.active.split { background: var(--split-purple); }

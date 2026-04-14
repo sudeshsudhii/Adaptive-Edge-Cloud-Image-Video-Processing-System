@@ -1,0 +1,48 @@
+.task-progress { padding: 24px; }
+.task-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.task-id {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.task-id .label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.task-id code {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent);
+  font-family: 'SF Mono', monospace;
+}
+.progress-details {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+.progress-details .stage {
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.result-summary {
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: var(--success-bg);
+  border-radius: var(--radius-xs);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--success);
+}

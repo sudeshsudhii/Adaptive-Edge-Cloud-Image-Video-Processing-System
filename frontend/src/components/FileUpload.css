@@ -1,0 +1,64 @@
+.file-upload {
+  padding: 24px;
+}
+.drop-zone {
+  border: 2px dashed var(--border-glass);
+  border-radius: var(--radius-sm);
+  padding: 36px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition);
+  background: transparent;
+}
+.drop-zone:hover, .drop-zone.drag-active {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+.drop-zone.uploading {
+  pointer-events: none;
+  opacity: 0.6;
+}
+.drop-icon {
+  font-size: 2rem;
+  margin-bottom: 8px;
+}
+.drop-text {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.drop-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+.upload-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--accent-bg);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  margin: 0 auto;
+  animation: spin 0.7s linear infinite;
+}
+.upload-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 12px;
+  background: var(--accent-bg);
+  border-radius: var(--radius-xs);
+}
+.meta-item {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+.meta-item strong {
+  color: var(--text-primary);
+}
+.error-text {
+  color: var(--danger);
+  font-size: 0.85rem;
+  margin-top: 12px;
+}

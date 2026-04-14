@@ -1,0 +1,48 @@
+.system-profile {
+  padding: 24px;
+}
+.system-profile .section-title {
+  display: flex;
+  justify-content: space-between;
+}
+.btn-sm {
+  padding: 5px 12px;
+  font-size: 0.75rem;
+}
+.profile-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.profile-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.profile-item .label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+.profile-item .value {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.mini-bar {
+  height: 4px;
+  background: rgba(99, 102, 241, 0.1);
+  border-radius: 2px;
+  margin-top: 4px;
+}
+.mini-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+.muted {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
