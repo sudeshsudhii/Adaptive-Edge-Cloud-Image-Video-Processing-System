@@ -46,3 +46,11 @@
   font-weight: 600;
   color: var(--success);
 }
+.download-btn {
+  margin-top: 14px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+}

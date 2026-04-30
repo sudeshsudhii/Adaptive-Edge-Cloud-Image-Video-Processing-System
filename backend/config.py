@@ -23,12 +23,12 @@ class _Settings:
     # ── Server ──
     BACKEND_HOST: str = os.getenv("BACKEND_HOST", "0.0.0.0")
     BACKEND_PORT: int = int(os.getenv("BACKEND_PORT", "8000"))
-    FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:3000")
+    FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://127.0.0.1:3000")
 
     # ── Redis ──
-    REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-    REDIS_STATE_DB: str = os.getenv("REDIS_STATE_DB", "redis://localhost:6379/1")
-    REDIS_CACHE_DB: str = os.getenv("REDIS_CACHE_DB", "redis://localhost:6379/2")
+    REDIS_URL: str = os.getenv("REDIS_URL", "redis://127.0.0.1:6379/0")
+    REDIS_STATE_DB: str = os.getenv("REDIS_STATE_DB", "redis://127.0.0.1:6379/1")
+    REDIS_CACHE_DB: str = os.getenv("REDIS_CACHE_DB", "redis://127.0.0.1:6379/2")
 
     # ── Auth ──
     AUTH_ENABLED: bool = os.getenv("AUTH_ENABLED", "false").lower() == "true"

@@ -40,14 +40,20 @@ app = FastAPI(
 # ── CORS ──────────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.FRONTEND_URL, "http://localhost:3000"],
+    allow_origins=[
+        settings.FRONTEND_URL,
+        "http://127.0.0.1:3000",
+        "http://localhost:3000",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
-# ── Request middleware (logging + rate-limit) ─────────────
+# ── Request middleware (logging + rate-limit + latency targets) ──
+_LATENCY_WARN_THRESHOLD = 0.5  # seconds — strict target
+
 @app.middleware("http")
 async def request_middleware(request: Request, call_next):
     start = time.time()
@@ -60,7 +66,11 @@ async def request_middleware(request: Request, call_next):
         method=request.method,
         path=str(request.url.path),
     )
-    logger.info(
+    log_fn = logger.info
+    if duration > _LATENCY_WARN_THRESHOLD:
+        log_fn = logger.warning
+        metrics.inc_counter("http_slow_requests", path=str(request.url.path))
+    log_fn(
         f"{request.method} {request.url.path} → {response.status_code} "
         f"({duration:.3f}s)"
     )
@@ -75,6 +85,9 @@ app.include_router(process.router)
 app.include_router(status.router)
 app.include_router(system.router)
 app.include_router(benchmark.router)
+
+# ── Static file serving for processed outputs ─────────────
+app.mount("/outputs", StaticFiles(directory=str(settings.OUTPUT_DIR)), name="outputs")
 
 
 # ── WebSocket ─────────────────────────────────────────────
@@ -103,7 +116,26 @@ async def get_errors():
 # ── Startup ───────────────────────────────────────────────
 @app.on_event("startup")
 async def startup():
+    import asyncio
     settings.ensure_dirs()
+    # Pre-warm broker check so first /process doesn't block on Redis timeout
+    try:
+        from orchestrator.scheduler import _check_broker
+        await asyncio.to_thread(_check_broker)
+    except Exception:
+        pass
+    # Pre-warm the asyncio default thread pool + profiler caches
+    # This ensures the first /process call doesn't pay 300ms thread pool init cost
+    try:
+        from agent.profiler import SystemProfiler
+        from agent.network import NetworkProfiler
+        _sp, _np = SystemProfiler(), NetworkProfiler()
+        await asyncio.gather(
+            asyncio.to_thread(_sp.snapshot),
+            asyncio.to_thread(_np.snapshot),
+        )
+    except Exception:
+        pass
     logger.info(
         f"{settings.APP_NAME} v{settings.APP_VERSION} starting on "
         f"http://{settings.BACKEND_HOST}:{settings.BACKEND_PORT}"

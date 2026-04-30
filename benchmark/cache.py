@@ -14,19 +14,33 @@ logger = get_logger("bench_cache")
 class BenchmarkCache:
     """Two-tier cache: memory dict + optional Redis."""
 
+    _redis_checked = False
+    _shared_redis = None
+
     def __init__(self) -> None:
         self._memory: dict[str, str] = {}
+
+        if BenchmarkCache._redis_checked:
+            self._redis = BenchmarkCache._shared_redis
+            return
+
         self._redis = None
         try:
             import redis as _redis_lib
             from backend.config import settings
             self._redis = _redis_lib.from_url(
-                settings.REDIS_CACHE_DB, decode_responses=True
+                settings.REDIS_CACHE_DB, decode_responses=True,
+                socket_connect_timeout=0.5,
+                socket_timeout=0.5,
             )
             self._redis.ping()
             logger.info("BenchmarkCache: connected to Redis")
         except Exception:
+            self._redis = None
             logger.info("BenchmarkCache: Redis unavailable, using memory only")
+        finally:
+            BenchmarkCache._shared_redis = self._redis
+            BenchmarkCache._redis_checked = True
 
     def store(self, task_id: str, benchmark: BenchmarkOutput) -> None:
         data = benchmark.model_dump_json()

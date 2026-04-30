@@ -10,7 +10,7 @@ class TaskWebSocket {
   }
 
   connect() {
-    const base = process.env.REACT_APP_WS_URL || 'ws://localhost:8000';
+    const base = process.env.REACT_APP_WS_URL || 'ws://127.0.0.1:8000';
     this.ws = new WebSocket(`${base}/ws/${this.taskId}`);
 
     this.ws.onopen = () => {

@@ -27,6 +27,7 @@ The system dynamically selects the optimal execution mode based on real-time sys
 - 🔄 **Distributed Computing** — Ray-based parallelism inside Celery task lifecycle
 - ☁️ **Cloud Simulation** — Run without real AWS; simulated providers with realistic latency/cost profiles
 - 📊 **Real-time Benchmarking** — Latency, throughput, CPU/GPU usage, cost, energy, speedup
+- 🖥️ **Rich React Dashboard** — Live pipeline visualization, before/after comparison sliders, and real-time auto-refreshing system telemetry
 - 🔐 **Production Security** — JWT authentication, rate limiting (60 req/min), file validation
 - 🌐 **WebSocket Updates** — Live task progress pushed to the React dashboard
 - 🤖 **DQN Reinforcement Learning** — Optional RL agent for adaptive mode selection

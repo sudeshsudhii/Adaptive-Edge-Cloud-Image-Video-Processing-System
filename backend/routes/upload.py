@@ -32,7 +32,8 @@ async def upload_file(
     dest.write_bytes(contents)
 
     # Extract metadata
-    size_mb = round(len(contents) / (1024 * 1024), 3)
+    # Keep tiny test files valid for the processing schema, which requires > 0 MB.
+    size_mb = max(round(len(contents) / (1024 * 1024), 3), 0.001)
     is_video = ext.lower() in {".mp4", ".avi", ".mov", ".webm", ".mkv"}
 
     width, height, frames = 0, 0, 1

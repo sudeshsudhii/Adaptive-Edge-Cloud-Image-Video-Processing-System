@@ -1,0 +1,25 @@
+.activity-feed { padding: 20px; }
+.activity-list { display: flex; flex-direction: column; gap: 8px; }
+.activity-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border-glass);
+}
+.activity-icon {
+  color: var(--success);
+  font-weight: bold;
+}
+.activity-time {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+.activity-text strong.text-local { color: var(--success); }
+.activity-text strong.text-cloud { color: var(--cloud-blue); }
+.activity-text strong.text-split { color: var(--split-purple); }

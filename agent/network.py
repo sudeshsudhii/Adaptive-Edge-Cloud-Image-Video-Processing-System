@@ -17,9 +17,16 @@ _PING_HOST = "8.8.8.8"
 _PING_PORT = 53
 _PING_TIMEOUT = 2.0
 
+# Cache TTL for network profiles (seconds)
+_CACHE_TTL = 30.0
+
 
 class NetworkProfiler:
     """Measures network latency and estimates bandwidth."""
+
+    # Class-level cache shared across all instances
+    _cache: Optional[NetworkProfile] = None
+    _cache_time: float = 0.0
 
     def __init__(
         self,
@@ -72,7 +79,15 @@ class NetworkProfiler:
         return bw
 
     def snapshot(self) -> NetworkProfile:
+        """Return cached profile if fresh, otherwise measure."""
+        now = time.time()
+        if NetworkProfiler._cache is not None and (now - NetworkProfiler._cache_time) < _CACHE_TTL:
+            return NetworkProfiler._cache
+
         latency = self.measure_latency()
         bandwidth = self.estimate_bandwidth()
-        logger.info(f"Network: latency={latency}ms, bandwidth≈{bandwidth}Mbps")
-        return NetworkProfile(latency_ms=latency, bandwidth_mbps=bandwidth)
+        logger.info(f"Network: latency={latency}ms, bandwidth\u2248{bandwidth}Mbps")
+        profile = NetworkProfile(latency_ms=latency, bandwidth_mbps=bandwidth)
+        NetworkProfiler._cache = profile
+        NetworkProfiler._cache_time = now
+        return profile

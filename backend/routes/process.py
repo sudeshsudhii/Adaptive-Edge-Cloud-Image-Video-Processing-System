@@ -3,6 +3,9 @@
 
 from __future__ import annotations
 
+import asyncio
+import threading
+
 from fastapi import APIRouter, Depends
 
 from agent.network import NetworkProfiler
@@ -25,6 +28,25 @@ _sys = SystemProfiler()
 _net = NetworkProfiler()
 
 
+def _prewarm():
+    """Pre-warm caches in background so first request is fast."""
+    try:
+        _sys.snapshot()
+        _net.snapshot()
+    except Exception:
+        pass
+    # Pre-warm broker check so first submit is fast
+    try:
+        from orchestrator.scheduler import _check_broker
+        _check_broker()
+    except Exception:
+        pass
+
+
+# Pre-warm on module load (non-blocking background thread)
+threading.Thread(target=_prewarm, daemon=True, name="profiler-prewarm").start()
+
+
 @router.post("", response_model=ProcessingResponse, status_code=202)
 async def submit_processing(
     input_schema: InputSchema,
@@ -39,8 +61,11 @@ async def submit_processing(
     Returns immediately with a task_id (HTTP 202 Accepted).
     Poll GET /status/{task_id} for progress.
     """
-    system_profile = _sys.snapshot()
-    network_profile = _net.snapshot()
+    # Run both profilers concurrently in thread pool
+    system_profile, network_profile = await asyncio.gather(
+        asyncio.to_thread(_sys.snapshot),
+        asyncio.to_thread(_net.snapshot),
+    )
 
     requested_mode = None
     if mode:
@@ -58,6 +83,7 @@ async def submit_processing(
         priority=priority,
     )
 
-    response = _scheduler.submit(payload)
+    response = await asyncio.to_thread(_scheduler.submit, payload)
     logger.info(f"Task submitted: {response.task_id}")
     return response
+

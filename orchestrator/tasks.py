@@ -1,10 +1,4 @@
-# orchestrator/tasks.py
-"""
-Celery task definitions.
-
-Celery owns the task lifecycle (queue → retry → timeout → state).
-Processing / Ray / Cloud are called INSIDE each task — no duplicate scheduling.
-"""
+"""Celery task definitions and local execution helper."""
 
 from __future__ import annotations
 
@@ -13,19 +7,10 @@ import traceback
 from celery import Celery
 
 from backend.config import settings
-from backend.models import (
-    ExecutionMode,
-    ProcessingResult,
-    TaskPayload,
-    TaskStatus,
-)
+from backend.models import ExecutionMode, ProcessingResult, TaskPayload, TaskStatus
 from observability.logger import get_logger
 
 logger = get_logger("celery_tasks")
-
-# ═══════════════════════════════════════════════════════════
-#  CELERY APP
-# ═══════════════════════════════════════════════════════════
 
 app = Celery(
     "edgecloud",
@@ -45,63 +30,71 @@ app.conf.update(
 )
 
 
-# ═══════════════════════════════════════════════════════════
-#  MAIN PROCESSING TASK
-# ═══════════════════════════════════════════════════════════
+# ── Singleton caches for task engines (created once, reused) ──
+_singleton_state_mgr = None
+_singleton_decision = None
+_singleton_processing = None
+_singleton_benchmark = None
 
-@app.task(
-    bind=True,
-    name="edgecloud.process",
-    max_retries=3,
-    default_retry_delay=5,
-    soft_time_limit=300,
-    time_limit=360,
-    acks_late=True,
-)
-def process_task(self, payload_dict: dict) -> dict:
-    """
-    Master Celery task: decide → process → benchmark → store result.
 
-    Retries up to 3× with exponential backoff.
-    On 3rd cloud failure, falls back to LOCAL.
-    """
-    from orchestrator.state_manager import TaskStateManager
-    from decision.engine import DecisionEngine
-    from processing.engine import ProcessingEngine
+def _get_state_mgr(cls):
+    global _singleton_state_mgr
+    if _singleton_state_mgr is None:
+        _singleton_state_mgr = cls()
+    return _singleton_state_mgr
+
+
+def _get_decision_engine(cls):
+    global _singleton_decision
+    if _singleton_decision is None:
+        _singleton_decision = cls()
+    return _singleton_decision
+
+
+def _get_processing_engine(cls):
+    global _singleton_processing
+    if _singleton_processing is None:
+        _singleton_processing = cls()
+    return _singleton_processing
+
+
+def _get_benchmark_engine(cls):
+    global _singleton_benchmark
+    if _singleton_benchmark is None:
+        _singleton_benchmark = cls()
+    return _singleton_benchmark
+
+
+def run_processing_task(payload_dict: dict, retry_count: int = 0) -> dict:
+    """Run one processing attempt, with optional cloud-to-local fallback."""
     from benchmark.engine import BenchmarkEngine
+    from decision.engine import DecisionEngine
+    from orchestrator.state_manager import TaskStateManager
+    from processing.engine import ProcessingEngine
 
-    state_mgr = TaskStateManager()
-    decision_engine = DecisionEngine()
-    processing_engine = ProcessingEngine()
-    benchmark_engine = BenchmarkEngine()
+    # Use cached singletons to avoid re-init overhead per task
+    state_mgr = _get_state_mgr(TaskStateManager)
+    decision_engine = _get_decision_engine(DecisionEngine)
+    processing_engine = _get_processing_engine(ProcessingEngine)
+    benchmark_engine = _get_benchmark_engine(BenchmarkEngine)
 
     payload = TaskPayload.model_validate(payload_dict)
     task_id = payload.task_id
     mode = None
 
     try:
-        # ── PENDING → RUNNING ──
         state_mgr.transition(task_id, TaskStatus.RUNNING)
 
-        # ── Decision ──
         decision = decision_engine.decide(
             system=payload.system_profile,
             network=payload.network_profile,
             input_schema=payload.input_schema,
         )
         mode = payload.requested_mode or decision.mode
-        state_mgr.transition(
-            task_id, TaskStatus.FAILED  # will not execute — see below
-        ) if False else None  # placeholder for readability
-
-        # Update state with mode
         state_mgr.update_progress(task_id, 10.0, "decision_complete")
 
-        logger.info(
-            f"[{task_id}] Decision: {mode.value} — {decision.reasoning}"
-        )
+        logger.info(f"[{task_id}] Decision: {mode.value} - {decision.reasoning}")
 
-        # ── Processing ──
         result: ProcessingResult = processing_engine.execute(
             mode=mode,
             payload=payload,
@@ -113,7 +106,6 @@ def process_task(self, payload_dict: dict) -> dict:
         if result.error:
             raise RuntimeError(result.error)
 
-        # ── Benchmark ──
         benchmark = benchmark_engine.collect(
             task_id=task_id,
             mode=mode,
@@ -121,7 +113,6 @@ def process_task(self, payload_dict: dict) -> dict:
             system_profile=payload.system_profile,
         )
 
-        # ── RUNNING → COMPLETED ──
         state_mgr.transition(
             task_id,
             TaskStatus.COMPLETED,
@@ -135,12 +126,8 @@ def process_task(self, payload_dict: dict) -> dict:
     except Exception as exc:
         logger.error(f"[{task_id}] FAILED: {exc}\n{traceback.format_exc()}")
 
-        # ── Fallback: after 3 cloud failures, try LOCAL ──
-        if (
-            mode in (ExecutionMode.CLOUD, ExecutionMode.SPLIT)
-            and self.request.retries >= 2
-        ):
-            logger.warning(f"[{task_id}] Cloud failed 3×, falling back to LOCAL")
+        if mode in (ExecutionMode.CLOUD, ExecutionMode.SPLIT) and retry_count >= 2:
+            logger.warning(f"[{task_id}] Cloud failed 3x, falling back to LOCAL")
             try:
                 result = processing_engine.execute(
                     mode=ExecutionMode.LOCAL,
@@ -164,18 +151,36 @@ def process_task(self, payload_dict: dict) -> dict:
                         benchmark=benchmark,
                     )
                     return result.model_dump()
-            except Exception as fb_exc:
-                logger.error(f"[{task_id}] LOCAL fallback also failed: {fb_exc}")
+            except Exception as fallback_exc:
+                logger.error(
+                    f"[{task_id}] LOCAL fallback also failed: {fallback_exc}"
+                )
 
-        # Mark as FAILED
         try:
             state_mgr.transition(
                 task_id,
                 TaskStatus.FAILED,
                 error=str(exc),
-                retry_count=self.request.retries,
+                retry_count=retry_count,
             )
         except Exception:
             pass
 
+        raise
+
+
+@app.task(
+    bind=True,
+    name="edgecloud.process",
+    max_retries=3,
+    default_retry_delay=5,
+    soft_time_limit=300,
+    time_limit=360,
+    acks_late=True,
+)
+def process_task(self, payload_dict: dict) -> dict:
+    """Queue-backed processing task."""
+    try:
+        return run_processing_task(payload_dict, retry_count=self.request.retries)
+    except Exception as exc:
         raise self.retry(exc=exc)

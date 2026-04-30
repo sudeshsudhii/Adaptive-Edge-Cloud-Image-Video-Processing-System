@@ -43,3 +43,10 @@
 .mode-btn.active.local { background: var(--success); }
 .mode-btn.active.cloud { background: var(--cloud-blue); }
 .mode-btn.active.split { background: var(--split-purple); }
+
+.mode-hint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-style: italic;
+  animation: fadeInUp 0.3s ease-out;
+}

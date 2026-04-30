@@ -1,0 +1,117 @@
+.pipeline-status {
+  margin-top: 16px;
+}
+.pipeline-track {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 8px 0;
+}
+.pipeline-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+  z-index: 1;
+}
+.node-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  background: rgba(0, 0, 0, 0.03);
+  border: 2px solid var(--border-glass);
+  transition: all 0.4s ease;
+  color: var(--text-muted);
+}
+.node-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  transition: color 0.3s ease;
+}
+.pipeline-node.done .node-icon {
+  background: var(--success-bg);
+  border-color: var(--success);
+  color: var(--success);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+.pipeline-node.done .node-label {
+  color: var(--success);
+}
+.pipeline-node.active .node-icon {
+  background: var(--accent-bg);
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.12);
+  animation: pulse 1.5s infinite;
+}
+.pipeline-node.active .node-label {
+  color: var(--accent);
+  font-weight: 700;
+}
+.pipeline-node.active.done .node-icon {
+  background: var(--success-bg);
+  border-color: var(--success);
+  color: var(--success);
+  box-shadow: none;
+  animation: none;
+}
+.pipeline-node.failed .node-icon {
+  background: var(--danger-bg);
+  border-color: var(--danger);
+  color: var(--danger);
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.12);
+  animation: none;
+}
+.pipeline-node.failed .node-label {
+  color: var(--danger);
+}
+
+.pipeline-connector {
+  width: 48px;
+  height: 3px;
+  background: var(--border-glass);
+  border-radius: 2px;
+  transition: background 0.4s ease;
+  flex-shrink: 0;
+  margin: 0 -2px;
+  margin-bottom: 22px;
+}
+.pipeline-connector.done {
+  background: var(--success);
+}
+.pipeline-connector.active {
+  background: linear-gradient(90deg, var(--success), var(--accent));
+}
+
+.pipeline-mode-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.pipeline-reason {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.pipeline-status-text {
+  text-align: center;
+  margin-top: 16px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  opacity: 0.8;
+  animation: pulse 2.5s infinite;
+}

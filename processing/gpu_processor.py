@@ -34,24 +34,50 @@ def _ensure_torch():
             _TORCH_AVAILABLE = False
 
 
+# ── Cached GPU detection (done once per process) ──
+_GPU_DETECTION_CACHE: dict | None = None
+
+def _detect_gpu() -> dict:
+    """Detect GPU capabilities once and cache the result."""
+    global _GPU_DETECTION_CACHE
+    if _GPU_DETECTION_CACHE is not None:
+        return _GPU_DETECTION_CACHE
+
+    _ensure_torch()
+    result = {
+        "gpu_available": False,
+        "device": None,
+        "gpu_name": "CPU (fallback)",
+        "total_vram_mb": 0,
+    }
+
+    if _TORCH_AVAILABLE:
+        if _torch.cuda.is_available():
+            result["device"] = _torch.device("cuda")
+            result["gpu_available"] = True
+            props = _torch.cuda.get_device_properties(0)
+            result["gpu_name"] = props.name
+            result["total_vram_mb"] = props.total_mem // (1024 * 1024)
+            logger.info(f"GPU detected: {result['gpu_name']}, VRAM={result['total_vram_mb']} MB")
+        else:
+            result["device"] = _torch.device("cpu")
+            logger.warning("No CUDA GPU detected — using CPU fallback")
+    else:
+        logger.warning("PyTorch not available — using CPU fallback")
+
+    _GPU_DETECTION_CACHE = result
+    return result
+
+
 class GPUProcessor:
     """Batch-oriented, memory-safe GPU image processor."""
 
     def __init__(self) -> None:
-        _ensure_torch()
-        if _TORCH_AVAILABLE and _torch.cuda.is_available():
-            self.device = _torch.device("cuda")
-            self.gpu_available = True
-            props = _torch.cuda.get_device_properties(0)
-            self.gpu_name = props.name
-            self.total_vram_mb = props.total_mem // (1024 * 1024)
-            logger.info(f"GPU: {self.gpu_name}, VRAM={self.total_vram_mb} MB")
-        else:
-            self.device = _torch.device("cpu") if _TORCH_AVAILABLE else None
-            self.gpu_available = False
-            self.gpu_name = "CPU (fallback)"
-            self.total_vram_mb = 0
-            logger.warning("No CUDA GPU detected — using CPU fallback")
+        info = _detect_gpu()
+        self.device = info["device"]
+        self.gpu_available = info["gpu_available"]
+        self.gpu_name = info["gpu_name"]
+        self.total_vram_mb = info["total_vram_mb"]
 
     # ── Public API ────────────────────────────────────────
     def process_batch(

@@ -1,0 +1,26 @@
+.timeline-summary-simple {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 16px;
+  padding: 12px;
+  background: rgba(0,0,0,0.02);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-glass);
+}
+.timeline-stat {
+  display: flex;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+.timeline-stat strong {
+  color: var(--text-primary);
+}
+.timeline-stat.total {
+  margin-left: auto;
+  color: var(--accent);
+}
+.timeline-stat.total strong {
+  color: var(--accent);
+}

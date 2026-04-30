@@ -2,21 +2,26 @@
 import React, { useState, useRef } from 'react';
 import { uploadFile } from '../services/api';
 import { formatBytes } from '../utils/formatters';
+import FilePreview from './FilePreview';
 import './FileUpload.css';
 
 const FileUpload = ({ onUploaded }) => {
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState(null);
+  const [rawFile, setRawFile] = useState(null);
   const fileInputRef = useRef();
 
   const handleFile = async (file) => {
     if (!file) return;
+    setRawFile(file);
     setUploading(true);
+    const t0 = performance.now();
     try {
       const result = await uploadFile(file);
+      const uploadTimeMs = performance.now() - t0;
       setUploadResult(result);
-      if (onUploaded) onUploaded(result);
+      if (onUploaded) onUploaded({ ...result, _rawFile: file, _uploadTimeMs: uploadTimeMs });
     } catch (err) {
       console.error('Upload failed:', err);
       setUploadResult({ error: err.response?.data?.detail || 'Upload failed' });
@@ -70,6 +75,10 @@ const FileUpload = ({ onUploaded }) => {
           <div className="meta-item"><span>Size:</span> <strong>{formatBytes(uploadResult.size_mb)}</strong></div>
         </div>
       )}
+
+      {/* File Preview */}
+      {rawFile && !uploadResult?.error && <FilePreview file={rawFile} />}
+
       {uploadResult?.error && (
         <p className="error-text">❌ {uploadResult.error}</p>
       )}

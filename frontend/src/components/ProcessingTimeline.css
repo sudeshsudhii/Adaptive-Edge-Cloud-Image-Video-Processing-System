@@ -1,0 +1,56 @@
+.processing-timeline {
+  margin-top: 16px;
+}
+.timeline-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.timeline-bar-row {
+  display: flex;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  gap: 2px;
+  margin-bottom: 10px;
+}
+.timeline-segment {
+  border-radius: 4px;
+  transition: width 0.5s ease;
+  min-width: 4px;
+}
+.timeline-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.timeline-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.timeline-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.timeline-item-label {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+.timeline-item-value {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.timeline-total {
+  margin-left: auto;
+}
+.timeline-total .timeline-item-value {
+  font-size: 0.85rem;
+}

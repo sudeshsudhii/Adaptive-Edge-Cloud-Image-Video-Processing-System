@@ -9,8 +9,8 @@ const SystemProfile = ({ onProfileLoaded }) => {
   const [network, setNetwork] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const fetchProfile = async () => {
-    setLoading(true);
+  const fetchProfile = async (showLoader = true) => {
+    if (showLoader) setLoading(true);
     try {
       const data = await getFullProfile();
       setSystem(data.system);
@@ -19,16 +19,20 @@ const SystemProfile = ({ onProfileLoaded }) => {
     } catch (err) {
       console.error('Profile fetch failed:', err);
     }
-    setLoading(false);
+    if (showLoader) setLoading(false);
   };
 
-  useEffect(() => { fetchProfile(); }, []);
+  useEffect(() => {
+    fetchProfile(true);
+    const interval = setInterval(() => fetchProfile(false), 5000);
+    return () => clearInterval(interval);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="glass-card system-profile fade-in">
       <div className="section-title">
         <span className="icon">🖥️</span> System Profile
-        <button className="btn btn-secondary btn-sm" onClick={fetchProfile} disabled={loading}>
+        <button className="btn btn-secondary btn-sm" onClick={() => fetchProfile(true)} disabled={loading}>
           {loading ? '...' : '↻ Refresh'}
         </button>
       </div>

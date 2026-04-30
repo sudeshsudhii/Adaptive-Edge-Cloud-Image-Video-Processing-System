@@ -12,6 +12,7 @@ Enforces legal state transitions:
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from threading import RLock
 from typing import Optional
 
 from backend.models import (
@@ -28,7 +29,7 @@ logger = get_logger("state_manager")
 _VALID_TRANSITIONS: dict[TaskStatus, set[TaskStatus]] = {
     TaskStatus.PENDING: {TaskStatus.RUNNING, TaskStatus.FAILED},
     TaskStatus.RUNNING: {TaskStatus.COMPLETED, TaskStatus.FAILED},
-    TaskStatus.FAILED: {TaskStatus.PENDING},        # retry
+    TaskStatus.FAILED: {TaskStatus.PENDING, TaskStatus.RUNNING},  # retry
     TaskStatus.COMPLETED: set(),                     # terminal
 }
 
@@ -38,11 +39,18 @@ class TaskStateManager:
 
     KEY_PREFIX = "task:"
     TTL = 86400  # 24 h
+    _shared_mem: dict[str, str] = {}
+    _shared_lock = RLock()
+    _redis_checked = False
+    _shared_redis = None
 
     def __init__(self, redis_url: str | None = None) -> None:
-        self._mem: dict[str, str] = {}
-        self._redis = None
+        # Use cached Redis connection to avoid repeated slow connection attempts
+        if TaskStateManager._redis_checked:
+            self._redis = TaskStateManager._shared_redis
+            return
 
+        self._redis = None
         url = redis_url
         if url is None:
             from backend.config import settings
@@ -50,11 +58,19 @@ class TaskStateManager:
 
         try:
             import redis as _r
-            self._redis = _r.from_url(url, decode_responses=True)
+            self._redis = _r.from_url(
+                url, decode_responses=True,
+                socket_connect_timeout=0.5,
+                socket_timeout=0.5,
+            )
             self._redis.ping()
             logger.info("TaskStateManager → Redis connected")
         except Exception:
+            self._redis = None
             logger.warning("TaskStateManager → Redis unavailable, using memory")
+        finally:
+            TaskStateManager._shared_redis = self._redis
+            TaskStateManager._redis_checked = True
 
     # ── helpers ───────────────────────────────────────────
     def _key(self, tid: str) -> str:
@@ -67,7 +83,8 @@ class TaskStateManager:
                 return
             except Exception:
                 pass
-        self._mem[tid] = raw
+        with self._shared_lock:
+            self._shared_mem[tid] = raw
 
     def _get(self, tid: str) -> Optional[str]:
         if self._redis:
@@ -77,7 +94,8 @@ class TaskStateManager:
                     return val
             except Exception:
                 pass
-        return self._mem.get(tid)
+        with self._shared_lock:
+            return self._shared_mem.get(tid)
 
     # ── public API ────────────────────────────────────────
     def create(self, task_id: str) -> TaskState:

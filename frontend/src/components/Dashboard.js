@@ -6,6 +6,9 @@ import DecisionView from './DecisionView';
 import TaskProgress from './TaskProgress';
 import BenchmarkChart from './BenchmarkChart';
 import MetricsPanel from './MetricsPanel';
+import ResultCompare from './ResultCompare';
+import ActivityFeed from './ActivityFeed';
+import PipelineStatus from './PipelineStatus';
 import { submitProcessing } from '../services/api';
 import './Dashboard.css';
 
@@ -13,7 +16,10 @@ const Dashboard = () => {
   const [systemProfile, setSystemProfile] = useState(null); // eslint-disable-line no-unused-vars
   const [networkProfile, setNetworkProfile] = useState(null); // eslint-disable-line no-unused-vars
   const [uploadedFile, setUploadedFile] = useState(null);
+  const [rawFile, setRawFile] = useState(null);
+  const [uploadTime, setUploadTime] = useState(null);
   const [taskId, setTaskId] = useState(null);
+  const [taskState, setTaskState] = useState(null);
   const [decision, setDecision] = useState(null);
   const [benchmark, setBenchmark] = useState(null);
   const [processing, setProcessing] = useState(false);
@@ -26,7 +32,10 @@ const Dashboard = () => {
 
   const handleUploaded = (result) => {
     setUploadedFile(result);
+    setRawFile(result._rawFile || null);
+    setUploadTime(result._uploadTimeMs || null);
     setTaskId(null);
+    setTaskState(null);
     setBenchmark(null);
     setDecision(null);
   };
@@ -36,6 +45,7 @@ const Dashboard = () => {
     setProcessing(true);
     setBenchmark(null);
     setDecision(null);
+    setTaskState(null);
 
     try {
       const inputSchema = {
@@ -54,22 +64,32 @@ const Dashboard = () => {
   };
 
   const handleTaskComplete = (state) => {
+    setTaskState(state);
     if (state.benchmark) setBenchmark(state.benchmark);
     if (state.result) {
-      // Construct a simple decision from result
       setDecision({
         mode: state.mode || state.result?.mode_used,
         system_score: 0.5,
         network_score: 0.3,
         complexity_score: 0.4,
         confidence: 0.85,
-        reasoning: `Task completed using ${state.mode || state.result?.mode_used} mode.`,
+        reasoning: `Task completed using ${state.mode || state.result?.mode_used} mode in ${(state.result.processing_time_s * 1000).toFixed(0)}ms.`,
       });
     }
   };
 
   return (
     <div className="dashboard">
+      {/* Demo Pipeline (if idle) */}
+      {!uploadedFile && (
+        <div className="glass-card fade-in" style={{ padding: 24, marginBottom: 20 }}>
+          <div className="section-title">
+            <span className="icon">🎮</span> System Pipeline Demo
+          </div>
+          <PipelineStatus isDemo={true} />
+        </div>
+      )}
+
       <div className="dashboard-grid">
         <SystemProfile onProfileLoaded={handleProfileLoaded} />
         <FileUpload onUploaded={handleUploaded} />
@@ -93,6 +113,13 @@ const Dashboard = () => {
                 </button>
               ))}
             </div>
+            {selectedMode !== 'AUTO' && (
+              <span className="mode-hint">
+                {selectedMode === 'LOCAL' && '⚡ Low latency, local GPU/CPU'}
+                {selectedMode === 'CLOUD' && '☁️ Full cloud offload'}
+                {selectedMode === 'SPLIT' && '🔀 Split edge + cloud pipeline'}
+              </span>
+            )}
             <button
               className="btn btn-primary"
               onClick={handleProcess}
@@ -104,15 +131,29 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Task Progress */}
+      {/* Task Progress + Pipeline + Timeline */}
       {taskId && (
-        <TaskProgress taskId={taskId} onComplete={handleTaskComplete} />
+        <TaskProgress
+          taskId={taskId}
+          uploadTime={uploadTime}
+          onComplete={handleTaskComplete}
+        />
+      )}
+
+      {/* Before vs After comparison */}
+      {taskState?.result && rawFile && (
+        <ResultCompare
+          originalFile={rawFile}
+          result={taskState.result}
+          mode={taskState.mode || taskState.result?.mode_used}
+        />
       )}
 
       {/* Results */}
       <div className="dashboard-grid">
         {decision && <DecisionView decision={decision} />}
         <MetricsPanel />
+        <ActivityFeed newTask={taskState} />
       </div>
 
       {benchmark && <BenchmarkChart benchmark={benchmark} />}
